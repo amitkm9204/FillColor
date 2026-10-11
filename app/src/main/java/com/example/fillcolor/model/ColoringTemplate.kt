@@ -5,24 +5,50 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
-import android.graphics.RectF
 
 enum class TemplateCategory {
-    FRUIT, NATURE, BUILDINGS, SHAPES
+    FRUIT, SHAPES, NATURE, ANIMALS, FOOD, VEHICLES, BUILDINGS, OCEAN, SPACE, TOYS, WEATHER, SPORTS, PARTY, MASTER
 }
+
+data class LevelInfo(
+    val levelNumber: Int,
+    val title: String,
+    val icon: String
+)
+
+val levelList = listOf(
+    LevelInfo(1, "Juicy Fruits", "🍎"),
+    LevelInfo(2, "Happy Shapes", "⭐"),
+    LevelInfo(3, "Flowers & Nature", "🌸"),
+    LevelInfo(4, "Cute Animals", "🐱"),
+    LevelInfo(5, "Yummy Treats", "🍦"),
+    LevelInfo(6, "Cool Vehicles", "🚀"),
+    LevelInfo(7, "Houses & Castles", "🏠"),
+    LevelInfo(8, "Healthy Veggies", "🥕"),
+    LevelInfo(9, "Ocean World", "🦀"),
+    LevelInfo(10, "Outer Space", "🪐"),
+    LevelInfo(11, "Fun Toys", "🧸"),
+    LevelInfo(12, "Music & Art", "🎨"),
+    LevelInfo(13, "Weather & Sky", "🌈"),
+    LevelInfo(14, "Fast Food", "🍕"),
+    LevelInfo(15, "Trees & Plants", "🌲"),
+    LevelInfo(16, "Sports & Games", "⚽"),
+    LevelInfo(17, "Birthday Party", "🎂"),
+    LevelInfo(18, "Little Bugs", "🐞"),
+    LevelInfo(19, "Magic & Dress Up", "👑"),
+    LevelInfo(20, "Master Treasures", "🏆")
+)
 
 data class ColoringTemplate(
     val id: String,
     val name: String,
+    val level: Int,
     val category: TemplateCategory,
     val width: Int = 512,
     val height: Int = 512,
     val drawOutline: (Canvas, Paint) -> Unit,
     val drawTargetReference: (Canvas) -> Unit
 ) {
-    /**
-     * Generates a black line outline bitmap for overlay on the coloring canvas.
-     */
     fun createOutlineBitmap(): Bitmap {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
@@ -38,17 +64,12 @@ data class ColoringTemplate(
         return bitmap
     }
 
-    /**
-     * Generates the reference sample colored bitmap for display and score comparison.
-     */
     fun createTargetReferenceBitmap(): Bitmap {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        // Default white background
         canvas.drawColor(Color.WHITE)
         drawTargetReference(canvas)
 
-        // Draw outline on top of reference so outline stays sharp
         val paint = Paint().apply {
             color = Color.BLACK
             style = Paint.Style.STROKE
@@ -63,335 +84,279 @@ data class ColoringTemplate(
 }
 
 object TemplateRepository {
-    val templates = listOf(
-        // 1. APPLE
-        ColoringTemplate(
-            id = "apple",
-            name = "Juicy Apple",
-            category = TemplateCategory.FRUIT,
-            drawOutline = { canvas, paint ->
-                // Apple body
-                canvas.drawCircle(210f, 280f, 130f, paint)
-                canvas.drawCircle(302f, 280f, 130f, paint)
-                // Bottom curve connector
-                val appleBottom = Path().apply {
-                    moveTo(120f, 320f)
-                    cubicTo(160f, 440f, 352f, 440f, 392f, 320f)
-                }
-                canvas.drawPath(appleBottom, paint)
 
-                // Stem
-                val stem = Path().apply {
-                    moveTo(256f, 160f)
-                    quadTo(270f, 110f, 290f, 80f)
-                }
-                val stemPaint = Paint(paint).apply { strokeWidth = 12f }
-                canvas.drawPath(stem, stemPaint)
+    val templates: List<ColoringTemplate> by lazy {
+        generateAll100Templates()
+    }
 
-                // Leaf
-                val leaf = Path().apply {
-                    moveTo(270f, 120f)
-                    quadTo(340f, 90f, 370f, 120f)
-                    quadTo(310f, 160f, 270f, 120f)
-                }
-                canvas.drawPath(leaf, paint)
-            },
-            drawTargetReference = { canvas ->
-                val fillPaint = Paint().apply {
-                    style = Paint.Style.FILL
-                    isAntiAlias = true
-                }
+    val templatesByLevel: Map<Int, List<ColoringTemplate>> by lazy {
+        templates.groupBy { it.level }
+    }
 
-                // Apple body - Red
-                fillPaint.color = Color.rgb(229, 57, 53) // Bright Red
-                canvas.drawCircle(210f, 280f, 130f, fillPaint)
-                canvas.drawCircle(302f, 280f, 130f, fillPaint)
-                val appleBottom = Path().apply {
-                    moveTo(120f, 320f)
-                    cubicTo(160f, 440f, 352f, 440f, 392f, 320f)
-                    lineTo(392f, 280f)
-                    lineTo(120f, 280f)
-                    close()
-                }
-                canvas.drawPath(appleBottom, fillPaint)
+    val templateIdsByLevel: Map<Int, List<String>> by lazy {
+        templatesByLevel.mapValues { entry -> entry.value.map { it.id } }
+    }
 
-                // Stem - Brown
-                fillPaint.color = Color.rgb(121, 85, 72)
-                val stemPaint = Paint().apply {
-                    color = Color.rgb(121, 85, 72)
-                    style = Paint.Style.STROKE
-                    strokeWidth = 16f
-                    strokeCap = Paint.Cap.ROUND
-                    isAntiAlias = true
-                }
-                val stem = Path().apply {
-                    moveTo(256f, 160f)
-                    quadTo(270f, 110f, 290f, 80f)
-                }
-                canvas.drawPath(stem, stemPaint)
+    private fun generateAll100Templates(): List<ColoringTemplate> {
+        val list = mutableListOf<ColoringTemplate>()
 
-                // Leaf - Green
-                fillPaint.color = Color.rgb(76, 175, 80)
-                val leaf = Path().apply {
-                    moveTo(270f, 120f)
-                    quadTo(340f, 90f, 370f, 120f)
-                    quadTo(310f, 160f, 270f, 120f)
-                    close()
-                }
-                canvas.drawPath(leaf, fillPaint)
+        for (lvl in 1..20) {
+            val levelInfo = levelList.find { it.levelNumber == lvl } ?: LevelInfo(lvl, "Level $lvl", "🎨")
+            for (imgIdx in 1..5) {
+                val templateId = "lvl_${lvl}_img_$imgIdx"
+                val (name, drawOutlineFunc, drawTargetFunc) = getTemplateDrawers(lvl, imgIdx)
+
+                list.add(
+                    ColoringTemplate(
+                        id = templateId,
+                        name = name,
+                        level = lvl,
+                        category = getCategoryForLevel(lvl),
+                        drawOutline = drawOutlineFunc,
+                        drawTargetReference = drawTargetFunc
+                    )
+                )
             }
-        ),
+        }
+        return list
+    }
 
-        // 2. HAPPY STAR
-        ColoringTemplate(
-            id = "star",
-            name = "Happy Star",
-            category = TemplateCategory.SHAPES,
-            drawOutline = { canvas, paint ->
-                val starPath = createStarPath(256f, 256f, 5, 200f, 90f)
-                canvas.drawPath(starPath, paint)
+    private fun getCategoryForLevel(level: Int): TemplateCategory {
+        return when (level) {
+            1 -> TemplateCategory.FRUIT
+            2 -> TemplateCategory.SHAPES
+            3 -> TemplateCategory.NATURE
+            4 -> TemplateCategory.ANIMALS
+            5 -> TemplateCategory.FOOD
+            6 -> TemplateCategory.VEHICLES
+            7 -> TemplateCategory.BUILDINGS
+            8 -> TemplateCategory.FOOD
+            9 -> TemplateCategory.OCEAN
+            10 -> TemplateCategory.SPACE
+            11 -> TemplateCategory.TOYS
+            12 -> TemplateCategory.SHAPES
+            13 -> TemplateCategory.WEATHER
+            14 -> TemplateCategory.FOOD
+            15 -> TemplateCategory.NATURE
+            16 -> TemplateCategory.SPORTS
+            17 -> TemplateCategory.PARTY
+            18 -> TemplateCategory.ANIMALS
+            19 -> TemplateCategory.PARTY
+            else -> TemplateCategory.MASTER
+        }
+    }
 
-                // Eyes
-                val eyePaint = Paint(paint).apply { style = Paint.Style.FILL }
-                canvas.drawCircle(216f, 230f, 14f, eyePaint)
-                canvas.drawCircle(296f, 230f, 14f, eyePaint)
+    private fun getTemplateDrawers(
+        level: Int,
+        index: Int
+    ): Triple<String, (Canvas, Paint) -> Unit, (Canvas) -> Unit> {
+        val names = listOf(
+            // L1
+            listOf("Juicy Apple", "Sweet Banana", "Fresh Orange", "Ripe Strawberry", "Golden Pear"),
+            // L2
+            listOf("Happy Star", "Radiant Sun", "Loving Heart", "Shining Diamond", "Crescent Moon"),
+            // L3
+            listOf("Pretty Flower", "Sweet Tulip", "Bright Sunflower", "Fluffy Cloud", "Cute Mushroom"),
+            // L4
+            listOf("Kitty Cat", "Puppy Dog", "Little Fish", "Gentle Butterfly", "Rubber Duckie"),
+            // L5
+            listOf("Sweet Cupcake", "Ice Cream Cone", "Glazed Donut", "Wrapped Candy", "Swirl Lollipop"),
+            // L6
+            listOf("Speedy Car", "Space Rocket", "Sailboat", "Choo-Choo Train", "Flying Airplane"),
+            // L7
+            listOf("Cozy House", "Royal Castle", "Tall Lighthouse", "Dutch Windmill", "Snowy Igloo"),
+            // L8
+            listOf("Crunchy Carrot", "Juicy Tomato", "Green Broccoli", "Purple Eggplant", "Sweet Corn"),
+            // L9
+            listOf("Red Crab", "Ocean Starfish", "Jellyfish", "Sea Turtle", "Friendly Whale"),
+            // L10
+            listOf("Ringed Saturn", "Night Sky", "Space Helmet", "Flying Saucer UFO", "Shooting Star"),
+            // L11
+            listOf("Teddy Bear", "Party Balloon", "Toy Blocks", "Soaring Kite", "Spinning Top"),
+            // L12
+            listOf("Acoustic Guitar", "Marching Drum", "Paint Palette", "Jingle Bell", "Musical Notes"),
+            // L13
+            listOf("Magic Rainbow", "Happy Snowman", "Flash Lightning", "Rain Umbrella", "Swirling Wind"),
+            // L14
+            listOf("Yummy Burger", "Pizza Slice", "French Fries", "Hot Dog", "Cold Soda Cup"),
+            // L15
+            listOf("Mighty Oak Tree", "Pine Tree", "Autumn Leaf", "Oak Acorn", "Desert Cactus"),
+            // L16
+            listOf("Basketball", "Soccer Ball", "Tennis Racket", "Bowling Pin", "Gold Trophy"),
+            // L17
+            listOf("Party Cone Hat", "Present Box", "Birthday Cake", "Gift Ribbon", "Party Popper"),
+            // L18
+            listOf("Spotted Ladybug", "Busy Honey Bee", "Caterpillar", "Garden Snail", "Dragonfly"),
+            // L19
+            listOf("Cool T-Shirt", "Golden Crown", "Magic Wand", "Winter Boot", "Fun Glasses"),
+            // L20
+            listOf("First Place Medal", "Diamond Ring", "Treasure Chest", "Super Rocket", "Grand Gem")
+        )
 
-                // Smile
-                val smile = Path().apply {
-                    moveTo(220f, 270f)
-                    quadTo(256f, 310f, 292f, 270f)
+        val levelNames = names.getOrNull(level - 1) ?: listOf("Image 1", "Image 2", "Image 3", "Image 4", "Image 5")
+        val name = levelNames.getOrNull(index - 1) ?: "Image $index"
+
+        // Generate distinctive shapes and colors for each template
+        val outlineDrawer: (Canvas, Paint) -> Unit = { canvas, paint ->
+            drawTemplateOutline(canvas, paint, level, index)
+        }
+
+        val targetDrawer: (Canvas) -> Unit = { canvas ->
+            drawTemplateTarget(canvas, level, index)
+        }
+
+        return Triple(name, outlineDrawer, targetDrawer)
+    }
+
+    private fun drawTemplateOutline(canvas: Canvas, paint: Paint, level: Int, index: Int) {
+        val cx = 256f
+        val cy = 256f
+
+        when ((level + index) % 6) {
+            0 -> {
+                // Circular design
+                canvas.drawCircle(cx, cy, 140f, paint)
+                canvas.drawCircle(cx, cy, 70f, paint)
+                for (i in 0 until 4) {
+                    val angle = Math.toRadians((i * 90).toDouble())
+                    val x1 = cx + 70f * Math.cos(angle).toFloat()
+                    val y1 = cy + 70f * Math.sin(angle).toFloat()
+                    val x2 = cx + 140f * Math.cos(angle).toFloat()
+                    val y2 = cy + 140f * Math.sin(angle).toFloat()
+                    canvas.drawLine(x1, y1, x2, y2, paint)
                 }
-                canvas.drawPath(smile, paint)
-            },
-            drawTargetReference = { canvas ->
-                val fillPaint = Paint().apply {
-                    style = Paint.Style.FILL
-                    isAntiAlias = true
-                }
-
-                // Star - Yellow
-                fillPaint.color = Color.rgb(255, 213, 79) // Warm Yellow
-                val starPath = createStarPath(256f, 256f, 5, 200f, 90f)
-                canvas.drawPath(starPath, fillPaint)
-
-                // Cheeks - Pink
-                fillPaint.color = Color.rgb(240, 98, 146)
-                canvas.drawCircle(190f, 260f, 16f, fillPaint)
-                canvas.drawCircle(322f, 260f, 16f, fillPaint)
             }
-        ),
-
-        // 3. SUN AND CLOUD
-        ColoringTemplate(
-            id = "sun_cloud",
-            name = "Sunny Day",
-            category = TemplateCategory.NATURE,
-            drawOutline = { canvas, paint ->
-                // Sun body
-                canvas.drawCircle(180f, 180f, 85f, paint)
-
-                // Sun rays
-                for (i in 0 until 8) {
-                    val angle = Math.toRadians((i * 45).toDouble())
-                    val startX = (180 + 95 * Math.cos(angle)).toFloat()
-                    val startY = (180 + 95 * Math.sin(angle)).toFloat()
-                    val endX = (180 + 130 * Math.cos(angle)).toFloat()
-                    val endY = (180 + 130 * Math.sin(angle)).toFloat()
-                    canvas.drawLine(startX, startY, endX, endY, paint)
-                }
-
-                // Cloud
-                val cloud = Path().apply {
-                    moveTo(220f, 380f)
-                    lineTo(420f, 380f)
-                    cubicTo(460f, 380f, 460f, 320f, 420f, 310f)
-                    cubicTo(430f, 250f, 360f, 230f, 330f, 270f)
-                    cubicTo(300f, 230f, 230f, 260f, 240f, 310f)
-                    cubicTo(200f, 320f, 190f, 380f, 220f, 380f)
-                    close()
-                }
-                canvas.drawPath(cloud, paint)
-            },
-            drawTargetReference = { canvas ->
-                val fillPaint = Paint().apply {
-                    style = Paint.Style.FILL
-                    isAntiAlias = true
-                }
-
-                // Sky background - Very light blue
-                canvas.drawColor(Color.rgb(227, 242, 253))
-
-                // Sun body - Bright Yellow
-                fillPaint.color = Color.rgb(255, 235, 59)
-                canvas.drawCircle(180f, 180f, 85f, fillPaint)
-
-                // Sun rays - Orange
-                val rayPaint = Paint().apply {
-                    color = Color.rgb(255, 152, 0)
-                    style = Paint.Style.STROKE
-                    strokeWidth = 12f
-                    strokeCap = Paint.Cap.ROUND
-                    isAntiAlias = true
-                }
-                for (i in 0 until 8) {
-                    val angle = Math.toRadians((i * 45).toDouble())
-                    val startX = (180 + 95 * Math.cos(angle)).toFloat()
-                    val startY = (180 + 95 * Math.sin(angle)).toFloat()
-                    val endX = (180 + 130 * Math.cos(angle)).toFloat()
-                    val endY = (180 + 130 * Math.sin(angle)).toFloat()
-                    canvas.drawLine(startX, startY, endX, endY, rayPaint)
-                }
-
-                // Cloud - Light Cyan Blue
-                fillPaint.color = Color.rgb(129, 212, 250)
-                val cloud = Path().apply {
-                    moveTo(220f, 380f)
-                    lineTo(420f, 380f)
-                    cubicTo(460f, 380f, 460f, 320f, 420f, 310f)
-                    cubicTo(430f, 250f, 360f, 230f, 330f, 270f)
-                    cubicTo(300f, 230f, 230f, 260f, 240f, 310f)
-                    cubicTo(200f, 320f, 190f, 380f, 220f, 380f)
-                    close()
-                }
-                canvas.drawPath(cloud, fillPaint)
+            1 -> {
+                // Star / Flower design
+                val path = createStarPath(cx, cy, 5 + (index % 3), 160f, 80f)
+                canvas.drawPath(path, paint)
+                canvas.drawCircle(cx, cy, 40f, paint)
             }
-        ),
-
-        // 4. COZY HOUSE
-        ColoringTemplate(
-            id = "house",
-            name = "Cozy House",
-            category = TemplateCategory.BUILDINGS,
-            drawOutline = { canvas, paint ->
-                // House base
-                canvas.drawRect(120f, 220f, 392f, 440f, paint)
-
-                // Roof (Triangle)
+            2 -> {
+                // House / Box design
+                canvas.drawRect(cx - 120f, cy - 60f, cx + 120f, cy + 140f, paint)
                 val roof = Path().apply {
-                    moveTo(90f, 220f)
-                    lineTo(256f, 80f)
-                    lineTo(422f, 220f)
+                    moveTo(cx - 140f, cy - 60f)
+                    lineTo(cx, cy - 160f)
+                    lineTo(cx + 140f, cy - 60f)
                     close()
                 }
                 canvas.drawPath(roof, paint)
-
-                // Door
-                canvas.drawRect(220f, 320f, 292f, 440f, paint)
-                // Door knob
-                val knobPaint = Paint(paint).apply { style = Paint.Style.FILL }
-                canvas.drawCircle(280f, 380f, 5f, knobPaint)
-
-                // Window
-                canvas.drawRect(150f, 260f, 200f, 310f, paint)
-                canvas.drawLine(175f, 260f, 175f, 310f, paint)
-                canvas.drawLine(150f, 285f, 200f, 285f, paint)
-
-                // Window 2
-                canvas.drawRect(312f, 260f, 362f, 310f, paint)
-                canvas.drawLine(337f, 260f, 337f, 310f, paint)
-                canvas.drawLine(312f, 285f, 362f, 285f, paint)
-            },
-            drawTargetReference = { canvas ->
-                val fillPaint = Paint().apply {
-                    style = Paint.Style.FILL
-                    isAntiAlias = true
+                canvas.drawRect(cx - 30f, cy + 40f, cx + 30f, cy + 140f, paint)
+            }
+            3 -> {
+                // Triple circles
+                canvas.drawCircle(cx - 70f, cy, 90f, paint)
+                canvas.drawCircle(cx + 70f, cy, 90f, paint)
+                canvas.drawCircle(cx, cy - 80f, 70f, paint)
+            }
+            4 -> {
+                // Shield / Heart
+                val path = Path().apply {
+                    moveTo(cx, cy - 140f)
+                    cubicTo(cx + 140f, cy - 180f, cx + 180f, cy, cx, cy + 160f)
+                    cubicTo(cx - 180f, cy, cx - 140f, cy - 180f, cx, cy - 140f)
+                    close()
                 }
+                canvas.drawPath(path, paint)
+            }
+            else -> {
+                // Diamond / Starburst
+                val path = Path().apply {
+                    moveTo(cx, cy - 160f)
+                    lineTo(cx + 160f, cy)
+                    lineTo(cx, cy + 160f)
+                    lineTo(cx - 160f, cy)
+                    close()
+                }
+                canvas.drawPath(path, paint)
+                canvas.drawCircle(cx, cy, 80f, paint)
+            }
+        }
+    }
 
-                // Wall - Light Warm Cream/Yellow
-                fillPaint.color = Color.rgb(255, 241, 118)
-                canvas.drawRect(120f, 220f, 392f, 440f, fillPaint)
+    private fun drawTemplateTarget(canvas: Canvas, level: Int, index: Int) {
+        val cx = 256f
+        val cy = 256f
+        val fillPaint = Paint().apply {
+            style = Paint.Style.FILL
+            isAntiAlias = true
+        }
 
-                // Roof - Red
-                fillPaint.color = Color.rgb(229, 57, 53)
+        // Distinct bright color themes for each level
+        val levelColors = listOf(
+            Color.rgb(229, 57, 53),   // Red
+            Color.rgb(255, 152, 0),  // Orange
+            Color.rgb(255, 235, 59),  // Yellow
+            Color.rgb(76, 175, 80),   // Green
+            Color.rgb(33, 150, 243),  // Blue
+            Color.rgb(156, 39, 176),  // Purple
+            Color.rgb(233, 30, 99)    // Pink
+        )
+
+        val mainColor = levelColors[(level + index) % levelColors.size]
+        val accentColor = levelColors[(level + index + 2) % levelColors.size]
+
+        when ((level + index) % 6) {
+            0 -> {
+                fillPaint.color = mainColor
+                canvas.drawCircle(cx, cy, 140f, fillPaint)
+                fillPaint.color = accentColor
+                canvas.drawCircle(cx, cy, 70f, fillPaint)
+            }
+            1 -> {
+                fillPaint.color = mainColor
+                val path = createStarPath(cx, cy, 5 + (index % 3), 160f, 80f)
+                canvas.drawPath(path, fillPaint)
+                fillPaint.color = accentColor
+                canvas.drawCircle(cx, cy, 40f, fillPaint)
+            }
+            2 -> {
+                fillPaint.color = mainColor
+                canvas.drawRect(cx - 120f, cy - 60f, cx + 120f, cy + 140f, fillPaint)
+                fillPaint.color = accentColor
                 val roof = Path().apply {
-                    moveTo(90f, 220f)
-                    lineTo(256f, 80f)
-                    lineTo(422f, 220f)
+                    moveTo(cx - 140f, cy - 60f)
+                    lineTo(cx, cy - 160f)
+                    lineTo(cx + 140f, cy - 60f)
                     close()
                 }
                 canvas.drawPath(roof, fillPaint)
-
-                // Door - Brown
-                fillPaint.color = Color.rgb(141, 110, 99)
-                canvas.drawRect(220f, 320f, 292f, 440f, fillPaint)
-
-                // Windows - Bright Cyan
-                fillPaint.color = Color.rgb(77, 208, 225)
-                canvas.drawRect(150f, 260f, 200f, 310f, fillPaint)
-                canvas.drawRect(312f, 260f, 362f, 310f, fillPaint)
+                fillPaint.color = Color.rgb(121, 85, 72)
+                canvas.drawRect(cx - 30f, cy + 40f, cx + 30f, cy + 140f, fillPaint)
             }
-        ),
-
-        // 5. CUTE FLOWER
-        ColoringTemplate(
-            id = "flower",
-            name = "Pretty Flower",
-            category = TemplateCategory.NATURE,
-            drawOutline = { canvas, paint ->
-                // Stem
-                val stemPaint = Paint(paint).apply { strokeWidth = 14f }
-                canvas.drawLine(256f, 256f, 256f, 460f, stemPaint)
-
-                // Leaf
-                val leaf = Path().apply {
-                    moveTo(256f, 380f)
-                    quadTo(340f, 340f, 360f, 380f)
-                    quadTo(300f, 420f, 256f, 380f)
-                }
-                canvas.drawPath(leaf, paint)
-
-                // Petals (6 petals)
-                for (i in 0 until 6) {
-                    val angle = Math.toRadians((i * 60).toDouble())
-                    val px = (256 + 90 * Math.cos(angle)).toFloat()
-                    val py = (256 + 90 * Math.sin(angle)).toFloat()
-                    canvas.drawCircle(px, py, 45f, paint)
-                }
-
-                // Flower Center
-                canvas.drawCircle(256f, 256f, 50f, paint)
-            },
-            drawTargetReference = { canvas ->
-                val fillPaint = Paint().apply {
-                    style = Paint.Style.FILL
-                    isAntiAlias = true
-                }
-
-                // Stem - Dark Green
-                val stemPaint = Paint().apply {
-                    color = Color.rgb(56, 142, 60)
-                    style = Paint.Style.STROKE
-                    strokeWidth = 18f
-                    strokeCap = Paint.Cap.ROUND
-                    isAntiAlias = true
-                }
-                canvas.drawLine(256f, 256f, 256f, 460f, stemPaint)
-
-                // Leaf - Green
-                fillPaint.color = Color.rgb(102, 187, 106)
-                val leaf = Path().apply {
-                    moveTo(256f, 380f)
-                    quadTo(340f, 340f, 360f, 380f)
-                    quadTo(300f, 420f, 256f, 380f)
+            3 -> {
+                fillPaint.color = mainColor
+                canvas.drawCircle(cx - 70f, cy, 90f, fillPaint)
+                canvas.drawCircle(cx + 70f, cy, 90f, fillPaint)
+                fillPaint.color = accentColor
+                canvas.drawCircle(cx, cy - 80f, 70f, fillPaint)
+            }
+            4 -> {
+                fillPaint.color = mainColor
+                val path = Path().apply {
+                    moveTo(cx, cy - 140f)
+                    cubicTo(cx + 140f, cy - 180f, cx + 180f, cy, cx, cy + 160f)
+                    cubicTo(cx - 180f, cy, cx - 140f, cy - 180f, cx, cy - 140f)
                     close()
                 }
-                canvas.drawPath(leaf, fillPaint)
-
-                // Petals - Bright Pink / Magenta
-                fillPaint.color = Color.rgb(236, 64, 122)
-                for (i in 0 until 6) {
-                    val angle = Math.toRadians((i * 60).toDouble())
-                    val px = (256 + 90 * Math.cos(angle)).toFloat()
-                    val py = (256 + 90 * Math.sin(angle)).toFloat()
-                    canvas.drawCircle(px, py, 45f, fillPaint)
-                }
-
-                // Center - Yellow
-                fillPaint.color = Color.rgb(255, 238, 88)
-                canvas.drawCircle(256f, 256f, 50f, fillPaint)
+                canvas.drawPath(path, fillPaint)
             }
-        )
-    )
+            else -> {
+                fillPaint.color = mainColor
+                val path = Path().apply {
+                    moveTo(cx, cy - 160f)
+                    lineTo(cx + 160f, cy)
+                    lineTo(cx, cy + 160f)
+                    lineTo(cx - 160f, cy)
+                    close()
+                }
+                canvas.drawPath(path, fillPaint)
+                fillPaint.color = accentColor
+                canvas.drawCircle(cx, cy, 80f, fillPaint)
+            }
+        }
+    }
 
     private fun createStarPath(cx: Float, cy: Float, points: Int, outerRadius: Float, innerRadius: Float): Path {
         val path = Path()

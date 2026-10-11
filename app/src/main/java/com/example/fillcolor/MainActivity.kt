@@ -17,10 +17,12 @@ import com.example.fillcolor.model.ColoringTemplate
 import com.example.fillcolor.ui.screens.ColoringScreen
 import com.example.fillcolor.ui.screens.TemplateSelectionScreen
 import com.example.fillcolor.ui.theme.FillColorTheme
+import com.example.fillcolor.utils.LevelManager
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LevelManager.init(this)
         enableEdgeToEdge()
         setContent {
             FillColorTheme {

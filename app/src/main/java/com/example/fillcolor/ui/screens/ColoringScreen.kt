@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.fillcolor.model.ColoringTemplate
+import com.example.fillcolor.model.TemplateRepository
 import com.example.fillcolor.ui.components.ColorPaletteBar
 import com.example.fillcolor.ui.components.ColoringTool
 import com.example.fillcolor.ui.components.ReferenceImageCard
@@ -52,6 +53,7 @@ import com.example.fillcolor.ui.components.ScoreDialog
 import com.example.fillcolor.utils.ColorComparison
 import com.example.fillcolor.utils.ColorMatchResult
 import com.example.fillcolor.utils.FloodFill
+import com.example.fillcolor.utils.LevelManager
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,6 +79,8 @@ fun ColoringScreen(
     var selectedColor by remember { mutableStateOf(Color(0xFFE53935)) } // Default Red
     var brushWidth by remember { mutableFloatStateOf(28f) }
     var scoreResult by remember { mutableStateOf<ColorMatchResult?>(null) }
+    var isNewlyUnlocked by remember { mutableStateOf(false) }
+    var unlockedNextLevelNum by remember { mutableStateOf<Int?>(null) }
 
     // History stack for Undo
     val historyStack = remember { mutableStateListOf<Bitmap>() }
@@ -136,7 +140,26 @@ fun ColoringScreen(
                 actions = {
                     Button(
                         onClick = {
-                            scoreResult = ColorComparison.calculateScore(userBitmap, targetBitmap)
+                            val res = ColorComparison.calculateScore(userBitmap, targetBitmap)
+                            scoreResult = res
+
+                            if (res.percentage >= 50) {
+                                val templateIdsMap = TemplateRepository.templateIdsByLevel
+                                val nextLevel = template.level + 1
+                                val wasNextUnlocked = LevelManager.isLevelUnlocked(nextLevel, templateIdsMap)
+
+                                LevelManager.markImageCompleted(template.id)
+
+                                val isNextUnlockedNow = LevelManager.isLevelUnlocked(nextLevel, templateIdsMap)
+
+                                if (!wasNextUnlocked && isNextUnlockedNow && nextLevel <= 20) {
+                                    isNewlyUnlocked = true
+                                    unlockedNextLevelNum = nextLevel
+                                } else {
+                                    isNewlyUnlocked = false
+                                    unlockedNextLevelNum = null
+                                }
+                            }
                         },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary
@@ -302,6 +325,8 @@ fun ColoringScreen(
     scoreResult?.let { result ->
         ScoreDialog(
             result = result,
+            isLevelUnlockedNow = isNewlyUnlocked,
+            nextUnlockedLevel = unlockedNextLevelNum,
             onTryAgain = {
                 scoreResult = null
                 clearCanvas()

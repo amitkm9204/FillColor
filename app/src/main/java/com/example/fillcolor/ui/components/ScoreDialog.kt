@@ -27,7 +27,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,6 +38,8 @@ import com.example.fillcolor.utils.ColorMatchResult
 @Composable
 fun ScoreDialog(
     result: ColorMatchResult,
+    isLevelUnlockedNow: Boolean = false,
+    nextUnlockedLevel: Int? = null,
     onTryAgain: () -> Unit,
     onChooseAnother: () -> Unit,
     onDismiss: () -> Unit
@@ -80,6 +81,35 @@ fun ScoreDialog(
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
+
+                // Level Unlocked Celebration Banner
+                if (isLevelUnlockedNow && nextUnlockedLevel != null) {
+                    Surface(
+                        color = Color(0xFFFFD54F),
+                        shape = RoundedCornerShape(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 12.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "🎉 LEVEL UNLOCKED! 🎉",
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp,
+                                color = Color(0xFF5D4037)
+                            )
+                            Text(
+                                text = "Level $nextUnlockedLevel is now open!",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp,
+                                color = Color(0xFF5D4037)
+                            )
+                        }
+                    }
+                }
 
                 // Title message
                 Text(

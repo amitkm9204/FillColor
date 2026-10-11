@@ -9,13 +9,16 @@ import org.junit.Test
 class ColorComparisonTest {
 
     @Test
-    fun testTemplateRepository_hasTemplates() {
+    fun testTemplateRepository_has100TemplatesAcross20Levels() {
         val templates = TemplateRepository.templates
         assertNotNull(templates)
-        assertEquals(5, templates.size)
+        assertEquals(100, templates.size)
 
-        val apple = templates.first { it.id == "apple" }
-        assertEquals("Juicy Apple", apple.name)
+        val levels = TemplateRepository.templatesByLevel
+        assertEquals(20, levels.size)
+        levels.forEach { (_, levelTemplates) ->
+            assertEquals(5, levelTemplates.size)
+        }
     }
 
     @Test
