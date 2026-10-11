@@ -1,30 +1,22 @@
 package com.example.fillcolor.ui.screens
 
 import android.graphics.Bitmap
-import android.graphics.Canvas
+import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Color as AndroidColor
 import android.graphics.Paint
-import android.graphics.Path
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -68,13 +60,13 @@ fun ColoringScreen(
     onBackClick: () -> Unit,
     onChooseAnotherPicture: () -> Unit
 ) {
-    // Initializing bitmaps
+    // Bitmaps
     val outlineBitmap = remember(template) { template.createOutlineBitmap() }
     val targetBitmap = remember(template) { template.createTargetReferenceBitmap() }
 
     val userBitmap = remember(template) {
         val bitmap = Bitmap.createBitmap(template.width, template.height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
+        val canvas = AndroidCanvas(bitmap)
         canvas.drawColor(AndroidColor.WHITE)
         bitmap
     }
@@ -99,7 +91,7 @@ fun ColoringScreen(
     fun undo() {
         if (historyStack.isNotEmpty()) {
             val previousState = historyStack.removeAt(historyStack.lastIndex)
-            val canvas = Canvas(userBitmap)
+            val canvas = AndroidCanvas(userBitmap)
             canvas.drawColor(AndroidColor.WHITE)
             canvas.drawBitmap(previousState, 0f, 0f, null)
             canvasVersion++
@@ -108,14 +100,14 @@ fun ColoringScreen(
 
     fun clearCanvas() {
         saveHistoryState()
-        val canvas = Canvas(userBitmap)
+        val canvas = AndroidCanvas(userBitmap)
         canvas.drawColor(AndroidColor.WHITE)
         canvasVersion++
     }
 
     var canvasSizePx by remember { mutableStateOf(IntSize.Zero) }
-    var currentDrawPath by remember { mutableStateOf<Path?>(null) }
-    var currentDrawPaint by remember { mutableStateOf<Paint?>(null) }
+    var lastTouchX by remember { mutableFloatStateOf(0f) }
+    var lastTouchY by remember { mutableFloatStateOf(0f) }
 
     Scaffold(
         topBar = {
@@ -187,15 +179,14 @@ fun ColoringScreen(
                     .aspectRatio(1f)
                     .shadow(8.dp, shape = RoundedCornerShape(24.dp))
                     .clip(RoundedCornerShape(24.dp))
-                    .background(Color.White)
-                    .onSizeChanged { canvasSizePx = it },
+                    .background(Color.White),
                 color = Color.White
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Compose Canvas Rendering user bitmap + outline
                     Canvas(
                         modifier = Modifier
                             .fillMaxSize()
+                            .onSizeChanged { canvasSizePx = it }
                             .pointerInput(selectedTool, selectedColor, brushWidth) {
                                 detectTapGestures { offset ->
                                     if (canvasSizePx.width > 0 && canvasSizePx.height > 0) {
@@ -229,43 +220,48 @@ fun ColoringScreen(
                                                 val scaleX = template.width.toFloat() / canvasSizePx.width
                                                 val scaleY = template.height.toFloat() / canvasSizePx.height
 
-                                                val bitmapX = offset.x * scaleX
-                                                val bitmapY = offset.y * scaleY
+                                                val bx = offset.x * scaleX
+                                                val by = offset.y * scaleY
 
-                                                val path = Path().apply { moveTo(bitmapX, bitmapY) }
+                                                lastTouchX = bx
+                                                lastTouchY = by
+
+                                                // Draw initial point at start touch
+                                                val canvas = AndroidCanvas(userBitmap)
                                                 val paint = Paint().apply {
                                                     color = if (selectedTool == ColoringTool.ERASER) AndroidColor.WHITE else selectedColor.toArgb()
-                                                    style = Paint.Style.STROKE
-                                                    strokeWidth = brushWidth
-                                                    strokeCap = Paint.Cap.ROUND
-                                                    strokeJoin = Paint.Join.ROUND
+                                                    style = Paint.Style.FILL
                                                     isAntiAlias = true
                                                 }
-                                                currentDrawPath = path
-                                                currentDrawPaint = paint
+                                                val radius = (brushWidth * scaleX) / 2f
+                                                canvas.drawCircle(bx, by, radius, paint)
+                                                canvasVersion++
                                             }
                                         },
                                         onDrag = { change, _ ->
+                                            change.consume()
                                             if (canvasSizePx.width > 0 && canvasSizePx.height > 0) {
                                                 val scaleX = template.width.toFloat() / canvasSizePx.width
                                                 val scaleY = template.height.toFloat() / canvasSizePx.height
 
-                                                val bitmapX = change.position.x * scaleX
-                                                val bitmapY = change.position.y * scaleY
+                                                val bx = change.position.x * scaleX
+                                                val by = change.position.y * scaleY
 
-                                                currentDrawPath?.lineTo(bitmapX, bitmapY)
-                                                currentDrawPaint?.let { paint ->
-                                                    currentDrawPath?.let { path ->
-                                                        val canvas = Canvas(userBitmap)
-                                                        canvas.drawPath(path, paint)
-                                                    }
+                                                val canvas = AndroidCanvas(userBitmap)
+                                                val paint = Paint().apply {
+                                                    color = if (selectedTool == ColoringTool.ERASER) AndroidColor.WHITE else selectedColor.toArgb()
+                                                    style = Paint.Style.STROKE
+                                                    strokeWidth = brushWidth * scaleX
+                                                    strokeCap = Paint.Cap.ROUND
+                                                    strokeJoin = Paint.Join.ROUND
+                                                    isAntiAlias = true
                                                 }
+                                                canvas.drawLine(lastTouchX, lastTouchY, bx, by, paint)
+
+                                                lastTouchX = bx
+                                                lastTouchY = by
                                                 canvasVersion++
                                             }
-                                        },
-                                        onDragEnd = {
-                                            currentDrawPath = null
-                                            currentDrawPaint = null
                                         }
                                     )
                                 }
@@ -275,11 +271,19 @@ fun ColoringScreen(
                         @Suppress("UNUSED_VARIABLE")
                         val dummy = canvasVersion
 
-                        // 1. Draw Kid's Colored Bitmap
-                        drawImage(userBitmap.asImageBitmap())
+                        val targetSize = IntSize(size.width.toInt(), size.height.toInt())
 
-                        // 2. Draw Black Line Outline overlay on top
-                        drawImage(outlineBitmap.asImageBitmap())
+                        // 1. Draw Kid's Colored Bitmap stretched to fill full canvas view
+                        drawImage(
+                            image = userBitmap.asImageBitmap(),
+                            dstSize = targetSize
+                        )
+
+                        // 2. Draw Black Line Outline overlay stretched to fill full canvas view
+                        drawImage(
+                            image = outlineBitmap.asImageBitmap(),
+                            dstSize = targetSize
+                        )
                     }
                 }
             }
