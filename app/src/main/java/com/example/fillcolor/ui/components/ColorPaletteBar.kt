@@ -2,6 +2,7 @@ package com.example.fillcolor.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,10 +20,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -31,9 +28,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -71,57 +68,62 @@ fun ColorPaletteBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        shadowElevation = 12.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
+        shadowElevation = 16.dp,
+        color = MaterialTheme.colorScheme.surface
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(horizontal = 12.dp, vertical = 14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Control Row: Tools (Fill, Brush, Eraser) & Actions (Undo, Clear)
+            // Top Control Row: Tool Selection Cards & Actions (Undo, Clear)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Tool Toggle Buttons
+                // Tool Toggle Buttons: Bucket Fill, Pencil/Brush, Eraser
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ToolButton(
-                        label = "🪣 Fill",
+                        icon = "🪣",
+                        label = "Fill",
                         isSelected = selectedTool == ColoringTool.FILL,
                         onClick = { onToolSelected(ColoringTool.FILL) }
                     )
                     ToolButton(
-                        label = "🖌️ Brush",
+                        icon = "✏️",
+                        label = "Pencil",
                         isSelected = selectedTool == ColoringTool.BRUSH,
                         onClick = { onToolSelected(ColoringTool.BRUSH) }
                     )
                     ToolButton(
-                        label = "🧹 Eraser",
+                        icon = "🧽",
+                        label = "Eraser",
                         isSelected = selectedTool == ColoringTool.ERASER,
                         onClick = { onToolSelected(ColoringTool.ERASER) }
                     )
                 }
 
-                // Undo & Clear Buttons
+                // Action Buttons: Undo & Clear
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     ActionChip(
-                        label = "↩️ Undo",
+                        icon = "↩️",
+                        label = "Undo",
                         onClick = onUndoClick
                     )
                     ActionChip(
-                        label = "🗑️ Clear",
+                        icon = "🗑️",
+                        label = "Clear",
                         onClick = onClearClick
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Brush Size Selector (Only visible if Brush or Eraser mode)
+            // Size Selector (Visible for Pencil/Brush or Eraser mode)
             if (selectedTool == ColoringTool.BRUSH || selectedTool == ColoringTool.ERASER) {
                 Row(
                     modifier = Modifier
@@ -131,37 +133,43 @@ fun ColorPaletteBar(
                     horizontalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Size:",
-                        fontSize = 12.sp,
+                        text = if (selectedTool == ColoringTool.ERASER) "Eraser Size:" else "Pencil Size:",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                     listOf(12f to "Small", 28f to "Medium", 48f to "Large").forEach { (width, name) ->
                         val isSelected = selectedBrushWidth == width
-                        val sizeDp = when (name) {
-                            "Small" -> 16.dp
-                            "Medium" -> 24.dp
-                            else -> 32.dp
+                        val dotSize = when (name) {
+                            "Small" -> 10.dp
+                            "Medium" -> 18.dp
+                            else -> 26.dp
                         }
                         Box(
                             modifier = Modifier
-                                .padding(horizontal = 8.dp)
+                                .padding(horizontal = 6.dp)
                                 .size(36.dp)
                                 .clip(CircleShape)
                                 .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                                .border(
+                                    width = if (isSelected) 2.dp else 0.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                                    shape = CircleShape
+                                )
                                 .clickable { onBrushWidthSelected(width) },
                             contentAlignment = Alignment.Center
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(sizeDp / 1.5f)
+                                    .size(dotSize)
                                     .clip(CircleShape)
                                     .background(if (selectedTool == ColoringTool.ERASER) Color.Gray else selectedColor)
                             )
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
 
             // Color Swatches Row
@@ -175,8 +183,7 @@ fun ColorPaletteBar(
                     val colorSize by animateDpAsState(targetValue = if (isSelected) 44.dp else 36.dp, label = "size")
 
                     Box(
-                        modifier = Modifier
-                            .size(48.dp),
+                        modifier = Modifier.size(48.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
@@ -185,8 +192,8 @@ fun ColorPaletteBar(
                                 .clip(CircleShape)
                                 .background(paletteColor.color)
                                 .border(
-                                    width = if (isSelected) 3.dp else 1.dp,
-                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Gray,
+                                    width = if (isSelected) 3.5.dp else 1.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else Color.LightGray,
                                     shape = CircleShape
                                 )
                                 .clickable {
@@ -205,50 +212,71 @@ fun ColorPaletteBar(
 
 @Composable
 private fun ToolButton(
+    icon: String,
     label: String,
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val containerColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+    val scale by animateFloatAsState(targetValue = if (isSelected) 1.05f else 1.0f, label = "scale")
+    val bgColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         label = "bg"
     )
-    val textColor by animateColorAsState(
-        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-        label = "text"
+    val borderColor by animateColorAsState(
+        targetValue = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+        label = "border"
     )
 
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(16.dp),
-        color = containerColor,
-        shadowElevation = if (isSelected) 4.dp else 1.dp
+        shape = RoundedCornerShape(18.dp),
+        color = bgColor,
+        shadowElevation = if (isSelected) 4.dp else 0.dp,
+        modifier = Modifier
+            .scale(scale)
+            .border(width = 2.dp, color = borderColor, shape = RoundedCornerShape(18.dp))
     ) {
-        Text(
-            text = label,
-            fontSize = 13.sp,
-            color = textColor,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(text = icon, fontSize = 18.sp)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
 @Composable
 private fun ActionChip(
+    icon: String,
     label: String,
     onClick: () -> Unit
 ) {
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surface,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
         shadowElevation = 1.dp
     ) {
-        Text(
-            text = label,
-            fontSize = 12.sp,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-        )
+        Row(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = icon, fontSize = 14.sp)
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = label,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
